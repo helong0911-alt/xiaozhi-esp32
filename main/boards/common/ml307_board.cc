@@ -271,3 +271,10 @@ std::string Ml307Board::GetDeviceStatusJson() {
     cJSON_Delete(root);
     return json;
 }
+
+std::shared_ptr<AtUart> Ml307Board::GetAtUart() {
+    if (modem_ == nullptr) {
+        return nullptr;
+    }
+    return modem_->GetAtUart();
+}

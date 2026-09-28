@@ -60,6 +60,8 @@ list(APPEND SOURCES
     "boards/common/knob.cc"
     "boards/common/power_save_timer.cc"
     "boards/common/press_to_talk_mcp_tool.cc"
+    "boards/common/gps_mcp_tool.cc"
+    "boards/common/ml307_gps.cc"
     "boards/common/sleep_timer.cc"
     "boards/common/sy6970.cc"
     "boards/common/system_reset.cc"
@@ -97,6 +99,10 @@ if(CONFIG_BOARD_TYPE_BREAD_COMPACT_WIFI)
     set(BUILTIN_ICON_FONT font_material_symbols_14_1)
 elseif(CONFIG_BOARD_TYPE_BREAD_COMPACT_ML307)
     set(BOARD_DIR "bread-compact-ml307")
+    set(BUILTIN_TEXT_FONT font_noto_sans_basic_14_1)
+    set(BUILTIN_ICON_FONT font_material_symbols_14_1)
+elseif(CONFIG_BOARD_TYPE_BREAD_COMPACT_ML307_GC)
+    set(BOARD_DIR "bread-compact-ml307-gc")
     set(BUILTIN_TEXT_FONT font_noto_sans_basic_14_1)
     set(BUILTIN_ICON_FONT font_material_symbols_14_1)
 elseif(CONFIG_BOARD_TYPE_BREAD_COMPACT_NT26)
@@ -1045,6 +1051,8 @@ if(CONFIG_IDF_TARGET_ESP32)
                              "boards/common/nt26_board.cc"
                              "boards/common/ml307_board.cc"
                              "boards/common/dual_network_board.cc"
+                             "boards/common/ml307_gps.cc"
+                             "boards/common/gps_mcp_tool.cc"
                              )
 endif()
 

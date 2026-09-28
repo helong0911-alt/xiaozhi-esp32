@@ -12,7 +12,7 @@
 #include "freertos/task.h"
 #include "wifi_manager.h"
 
-#define BLUFI_DEVICE_NAME "Xiaozhi-Blufi"
+// BLUFI_DEVICE_NAME is now configured via Kconfig CONFIG_BLUFI_DEVICE_NAME
 
 #ifdef CONFIG_BT_BLUEDROID_ENABLED
 #include "esp_bt_device.h"
@@ -808,7 +808,7 @@ void Blufi::_handle_event(esp_blufi_cb_event_t event, esp_blufi_cb_param_t* para
     switch (event) {
         case ESP_BLUFI_EVENT_INIT_FINISH:
             ESP_LOGI(BLUFI_TAG, "BLUFI init finish");
-            esp_ble_gap_set_device_name(BLUFI_DEVICE_NAME);
+            esp_ble_gap_set_device_name(CONFIG_BLUFI_DEVICE_NAME);
             esp_blufi_adv_start();
             break;
         case ESP_BLUFI_EVENT_DEINIT_FINISH:

@@ -6,6 +6,19 @@ config OTA_URL
     help
         The application will access this URL to check for new firmwares and server address.
 
+config WIFI_SSID_PREFIX
+    string "WiFi Hotspot SSID Prefix"
+    default "Xiaozhi"
+    help
+        The SSID prefix for the WiFi hotspot configuration mode.
+        The final SSID will be "<prefix>-<MAC last 2 bytes>".
+
+config BLUFI_DEVICE_NAME
+    string "BluFi BLE Device Name"
+    default "Xiaozhi-Blufi"
+    help
+        The BLE device name advertised in BluFi provisioning mode.
+
 choice
     prompt "Flash Assets"
     default FLASH_DEFAULT_ASSETS if !USE_EMOTE_MESSAGE_STYLE
@@ -166,6 +179,9 @@ choice BOARD_TYPE
         depends on IDF_TARGET_ESP32
     config BOARD_TYPE_BREAD_COMPACT_ML307
         bool "Bread Compact ML307/EC801E 4G (面包板)"
+        depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_BREAD_COMPACT_ML307_GC
+        bool "Bread Compact ML307 GC 4G (面包板)"
         depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_BREAD_COMPACT_NT26
         bool "Bread Compact NT26 4G (面包板)"
@@ -723,7 +739,7 @@ choice WK_ESP32S3_DEV_DISPLAY_TYPE
 endchoice
 
 choice DISPLAY_OLED_TYPE
-    depends on BOARD_TYPE_BREAD_COMPACT_WIFI || BOARD_TYPE_BREAD_COMPACT_ML307 || BOARD_TYPE_BREAD_COMPACT_NT26 || BOARD_TYPE_BREAD_COMPACT_ESP32 || BOARD_TYPE_HU_087 || (BOARD_TYPE_WK_ESP32S3_DEV && WK_ESP32S3_DEV_DISPLAY_OLED)
+    depends on BOARD_TYPE_BREAD_COMPACT_WIFI || BOARD_TYPE_BREAD_COMPACT_ML307 || BOARD_TYPE_BREAD_COMPACT_ML307_GC || BOARD_TYPE_BREAD_COMPACT_NT26 || BOARD_TYPE_BREAD_COMPACT_ESP32 || BOARD_TYPE_HU_087 || (BOARD_TYPE_WK_ESP32S3_DEV && WK_ESP32S3_DEV_DISPLAY_OLED)
     prompt "OLED Type"
     default OLED_SSD1306_128X32
     help

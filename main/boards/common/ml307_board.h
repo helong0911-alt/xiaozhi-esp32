@@ -33,6 +33,8 @@ public:
     virtual void SetPowerSaveLevel(PowerSaveLevel level) override;
     virtual AudioCodec* GetAudioCodec() override { return nullptr; }
     virtual std::string GetDeviceStatusJson() override;
+
+    std::shared_ptr<AtUart> GetAtUart();
 };
 
 #endif // ML307_BOARD_H
