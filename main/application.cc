@@ -6,6 +6,7 @@
 #include "cjson_utils.h"
 #include "display.h"
 #include "mcp_server.h"
+#include "dual_protocol.h"
 #include "mqtt_protocol.h"
 #include "settings.h"
 #include "system_info.h"
@@ -535,7 +536,9 @@ void Application::InitializeProtocol() {
 
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
 
-    if (ota_->HasMqttConfig()) {
+    if (ota_->HasMqttConfig() && ota_->HasWebsocketConfig()) {
+        protocol_ = std::make_unique<DualProtocol>();
+    } else if (ota_->HasMqttConfig()) {
         protocol_ = std::make_unique<MqttProtocol>();
     } else if (ota_->HasWebsocketConfig()) {
         protocol_ = std::make_unique<WebsocketProtocol>();
