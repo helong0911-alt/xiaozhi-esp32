@@ -49,6 +49,7 @@ private:
     bool StartMqttClient();
     void ParseWsServerHello(const cJSON* root);
     std::string GetWsHelloMessage();
+    void PublishDeviceStatus();
 
     bool SendText(const std::string& text) override;
 };

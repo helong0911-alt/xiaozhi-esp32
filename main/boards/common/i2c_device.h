@@ -13,9 +13,13 @@ protected:
     uint8_t device_address_;
 
     void WriteReg(uint8_t reg, uint8_t value);
+    bool TryWriteReg(uint8_t reg, uint8_t value);
     void WriteRegs(uint8_t reg, const uint8_t* buffer, size_t length);
+    bool TryWriteRegs(uint8_t reg, const uint8_t* buffer, size_t length);
     uint8_t ReadReg(uint8_t reg);
+    bool TryReadReg(uint8_t reg, uint8_t& out_value);
     void ReadRegs(uint8_t reg, uint8_t* buffer, size_t length);
+    bool TryReadRegs(uint8_t reg, uint8_t* buffer, size_t length);
     esp_err_t ResetBus(const char* reason);
 };
 

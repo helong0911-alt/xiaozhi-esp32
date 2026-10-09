@@ -136,10 +136,13 @@ bool DualProtocol::StartMqttClient() {
                             std::string message = "{\"session_id\":\"" + session_id_ +
                                                   "\",\"type\":\"mcp\",\"payload\":" +
                                                   response_payload + "}";
-                            std::lock_guard<std::mutex> lock(mqtt_mutex_);
-                            if (mqtt_ != nullptr && !mqtt_publish_topic_.empty()) {
-                                mqtt_->Publish(mqtt_publish_topic_, message);
+                            {
+                                std::lock_guard<std::mutex> lock(mqtt_mutex_);
+                                if (mqtt_ != nullptr && !mqtt_publish_topic_.empty()) {
+                                    mqtt_->Publish(mqtt_publish_topic_, message);
+                                }
                             }
+                            PublishDeviceStatus();
                         };
                     McpServer::GetInstance().ParseMessage(mcp_payload, mqtt_response_sender);
                 }
@@ -216,6 +219,8 @@ bool DualProtocol::StartMqttClient() {
     }
 
     ESP_LOGI(TAG, "MQTT presence announced on %s", mqtt_publish_topic_.c_str());
+
+    PublishDeviceStatus();
     return true;
 }
 
@@ -473,4 +478,38 @@ void DualProtocol::ParseWsServerHello(const cJSON* root) {
     }
 
     xEventGroupSetBits(event_group_handle_, DUAL_WS_HELLO_EVENT);
+}
+
+void DualProtocol::PublishDeviceStatus() {
+    auto codec = Board::GetInstance().GetAudioCodec();
+    if (codec == nullptr) {
+        return;
+    }
+
+    cJSON* root = cJSON_CreateObject();
+    if (root == nullptr) {
+        return;
+    }
+    cJSON* data = cJSON_CreateObject();
+    if (data == nullptr) {
+        cJSON_Delete(root);
+        return;
+    }
+    cJSON_AddStringToObject(root, "type", "status");
+    cJSON_AddNumberToObject(data, "volume", codec->output_volume());
+    cJSON_AddItemToObject(root, "data", data);
+    auto json_str = cJSON_PrintUnformatted(root);
+    if (json_str == nullptr) {
+        cJSON_Delete(root);
+        return;
+    }
+    std::string msg(json_str);
+    cJSON_free(json_str);
+    cJSON_Delete(root);
+
+    std::lock_guard<std::mutex> lock(mqtt_mutex_);
+    if (mqtt_ != nullptr && !mqtt_publish_topic_.empty()) {
+        mqtt_->Publish(mqtt_publish_topic_, msg);
+        ESP_LOGI(TAG, "Published device status: volume=%d", codec->output_volume());
+    }
 }
