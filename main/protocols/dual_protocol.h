@@ -16,8 +16,6 @@
 #include <atomic>
 #include <mutex>
 
-#define DUAL_MQTT_RECONNECT_INTERVAL_MS 60000
-
 #define DUAL_WS_HELLO_EVENT (1 << 0)
 
 class DualProtocol : public Protocol {
@@ -41,6 +39,7 @@ private:
     std::unique_ptr<Mqtt> mqtt_;
     esp_timer_handle_t reconnect_timer_;
     mutable std::mutex mqtt_mutex_;
+    int mqtt_reconnect_attempts_ = 0;
 
     // WS voice data plane
     std::unique_ptr<WebSocket> websocket_;

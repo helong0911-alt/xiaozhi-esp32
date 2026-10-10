@@ -6,6 +6,7 @@
 #include "system_info.h"
 
 #include <esp_log.h>
+#include <esp_random.h>
 #include <arpa/inet.h>
 #include <cJSON.h>
 #include <cstring>
@@ -63,6 +64,7 @@ bool DualProtocol::Start() {
 }
 
 bool DualProtocol::StartMqttClient() {
+    ESP_LOGI(TAG, "StartMqttClient: firmware updated with subscribe_topic fallback");
     {
         std::lock_guard<std::mutex> lock(mqtt_mutex_);
         if (mqtt_ != nullptr) {
@@ -78,6 +80,13 @@ bool DualProtocol::StartMqttClient() {
     int keepalive_interval = settings.GetInt("keepalive", 240);
     mqtt_publish_topic_ = settings.GetString("publish_topic");
     auto subscribe_topic = settings.GetString("subscribe_topic");
+    
+    // Fallback: construct subscribe_topic from device MAC if not configured
+    if (subscribe_topic.empty()) {
+        auto device_mac = SystemInfo::GetMacAddress();
+        subscribe_topic = "device/" + device_mac + "/cmd";
+        ESP_LOGI(TAG, "subscribe_topic not configured, using default: %s", subscribe_topic.c_str());
+    }
 
     if (endpoint.empty()) {
         ESP_LOGW(TAG, "MQTT endpoint is not specified");
@@ -92,15 +101,22 @@ bool DualProtocol::StartMqttClient() {
         if (on_disconnected_ != nullptr) {
             on_disconnected_();
         }
-        ESP_LOGI(TAG, "MQTT disconnected, schedule reconnect in %d seconds",
-                 DUAL_MQTT_RECONNECT_INTERVAL_MS / 1000);
-        esp_timer_start_once(reconnect_timer_, DUAL_MQTT_RECONNECT_INTERVAL_MS * 1000);
+        // Exponential backoff: 5s, 10s, 20s, 40s, 60s max + random jitter
+        int attempts = std::min(mqtt_reconnect_attempts_, 4);
+        int base_delay = std::min(5 * (1 << attempts), 60);
+        int jitter = esp_random() % 10;
+        int delay_ms = (base_delay + jitter) * 1000;
+        mqtt_reconnect_attempts_++;
+        ESP_LOGI(TAG, "MQTT disconnected, reconnect in %d seconds (attempt %d)",
+                 delay_ms / 1000, mqtt_reconnect_attempts_);
+        esp_timer_start_once(reconnect_timer_, delay_ms * 1000);
     });
 
     mqtt->OnConnected([this]() {
         if (on_connected_ != nullptr) {
             on_connected_();
         }
+        mqtt_reconnect_attempts_ = 0;
         esp_timer_stop(reconnect_timer_);
     });
 
@@ -191,9 +207,10 @@ bool DualProtocol::StartMqttClient() {
     }
 
     // Subscribe to command topic for server-to-device messages
-    if (!subscribe_topic.empty()) {
+    {
         std::lock_guard<std::mutex> lock(mqtt_mutex_);
         if (mqtt_ != nullptr) {
+            ESP_LOGI(TAG, "Subscribing to %s", subscribe_topic.c_str());
             mqtt_->Subscribe(subscribe_topic);
             ESP_LOGI(TAG, "Subscribed to %s", subscribe_topic.c_str());
         }
