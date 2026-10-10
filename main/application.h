@@ -100,7 +100,7 @@ public:
      * Start listening (event-based, thread-safe)
      * Sends MAIN_EVENT_START_LISTENING to be handled in Run()
      */
-    void StartListening();
+    void StartListening(ListeningMode mode = kListeningModeManualStop);
 
     /**
      * Stop listening (event-based, thread-safe)
@@ -138,6 +138,7 @@ private:
     esp_timer_handle_t clock_timer_handle_ = nullptr;
     DeviceStateMachine state_machine_;
     ListeningMode listening_mode_ = kListeningModeAutoStop;
+    ListeningMode pending_listening_mode_ = kListeningModeManualStop;
     AecMode aec_mode_ = kAecOff;
     std::string last_error_message_;
     AudioService audio_service_;

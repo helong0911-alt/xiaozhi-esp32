@@ -776,7 +776,10 @@ void Application::DismissAlert() {
 
 void Application::ToggleChatState() { xEventGroupSetBits(event_group_, MAIN_EVENT_TOGGLE_CHAT); }
 
-void Application::StartListening() { xEventGroupSetBits(event_group_, MAIN_EVENT_START_LISTENING); }
+void Application::StartListening(ListeningMode mode) {
+    pending_listening_mode_ = mode;
+    xEventGroupSetBits(event_group_, MAIN_EVENT_START_LISTENING);
+}
 
 void Application::StopListening() { xEventGroupSetBits(event_group_, MAIN_EVENT_STOP_LISTENING); }
 
@@ -870,13 +873,13 @@ void Application::HandleStartListeningEvent() {
         if (!protocol_->IsAudioChannelOpened()) {
             SetDeviceState(kDeviceStateConnecting);
             // Schedule to let the state change be processed first (UI update)
-            Schedule([this]() { ContinueOpenAudioChannel(kListeningModeManualStop); });
+            Schedule([this]() { ContinueOpenAudioChannel(pending_listening_mode_); });
             return;
         }
-        SetListeningMode(kListeningModeManualStop);
+        SetListeningMode(pending_listening_mode_);
     } else if (state == kDeviceStateSpeaking) {
         AbortSpeaking(kAbortReasonNone);
-        SetListeningMode(kListeningModeManualStop);
+        SetListeningMode(pending_listening_mode_);
     }
 }
 

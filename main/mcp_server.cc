@@ -59,6 +59,14 @@ void McpServer::AddCommonTools() {
                 return true;
             });
 
+    AddTool("self.audio.start_listen",
+            "Start listening to the user. The device will open the microphone and begin "
+            "receiving voice input.",
+            PropertyList(), [](const PropertyList& properties) -> ReturnValue {
+                Application::GetInstance().StartListening(kListeningModeAutoStop);
+                return true;
+            });
+
     auto backlight = board.GetBacklight();
     if (backlight) {
         AddTool("self.screen.set_brightness", "Set the brightness of the screen.",
