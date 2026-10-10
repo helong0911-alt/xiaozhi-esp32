@@ -23,7 +23,7 @@
 
 class CompactWifiBoard : public WifiBoard {
 private:
-    i2c_master_bus_handle_t display_i2c_bus_;
+    i2c_master_bus_handle_t display_i2c_bus_ = nullptr;
     esp_lcd_panel_io_handle_t panel_io_ = nullptr;
     esp_lcd_panel_handle_t panel_ = nullptr;
     Display* display_ = nullptr;
@@ -45,12 +45,20 @@ private:
                 .enable_internal_pullup = 1,
             },
         };
-        ESP_ERROR_CHECK(i2c_new_master_bus(&bus_config, &display_i2c_bus_));
+        if (i2c_new_master_bus(&bus_config, &display_i2c_bus_) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to create I2C bus for display");
+            display_i2c_bus_ = nullptr;
+        }
     }
 
     void InitializeSsd1306Display() {
-        // SSD1306 config
-        esp_lcd_panel_io_i2c_config_t io_config = {
+        if (display_i2c_bus_ == nullptr) {
+            ESP_LOGW(TAG, "No I2C bus available for display");
+            goto fallback;
+        }
+
+        {
+            esp_lcd_panel_io_i2c_config_t io_config = {
             .dev_addr = 0x3C,
             .scl_speed_hz = 400 * 1000,
             .control_phase_bytes = 1,
@@ -65,7 +73,10 @@ private:
             },
         };
 
-        ESP_ERROR_CHECK(esp_lcd_new_panel_io_i2c(display_i2c_bus_, &io_config, &panel_io_));
+        if (esp_lcd_new_panel_io_i2c(display_i2c_bus_, &io_config, &panel_io_) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to create panel IO");
+            goto fallback;
+        }
 
         ESP_LOGI(TAG, "Install SSD1306 driver");
         esp_lcd_panel_dev_config_t panel_config = {};
@@ -78,26 +89,45 @@ private:
         panel_config.vendor_config = &ssd1306_config;
 
 #ifdef SH1106
-        ESP_ERROR_CHECK(esp_lcd_new_panel_sh1106(panel_io_, &panel_config, &panel_));
+        if (esp_lcd_new_panel_sh1106(panel_io_, &panel_config, &panel_) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to create SH1106 panel");
+            goto fallback;
+        }
 #else
-        ESP_ERROR_CHECK(esp_lcd_new_panel_ssd1306(panel_io_, &panel_config, &panel_));
+        if (esp_lcd_new_panel_ssd1306(panel_io_, &panel_config, &panel_) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to create SSD1306 panel");
+            goto fallback;
+        }
 #endif
         ESP_LOGI(TAG, "SSD1306 driver installed");
 
-        // Reset the display
-        ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_));
-        if (esp_lcd_panel_init(panel_) != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to initialize display");
-            display_ = new NoDisplay();
-            return;
+        if (esp_lcd_panel_reset(panel_) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to reset display");
+            goto fallback;
         }
-        ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_, false));
 
-        // Set the display to on
+        if (esp_lcd_panel_init(panel_) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to initialize display");
+            goto fallback;
+        }
+
+        if (esp_lcd_panel_invert_color(panel_, false) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to invert color");
+            goto fallback;
+        }
+
         ESP_LOGI(TAG, "Turning display on");
-        ESP_ERROR_CHECK(esp_lcd_panel_disp_on_off(panel_, true));
+        if (esp_lcd_panel_disp_on_off(panel_, true) != ESP_OK) {
+            ESP_LOGW(TAG, "Failed to turn display on");
+            goto fallback;
+        }
 
         display_ = new OledDisplay(panel_io_, panel_, DISPLAY_WIDTH, DISPLAY_HEIGHT, DISPLAY_MIRROR_X, DISPLAY_MIRROR_Y);
+        }
+        return;
+
+    fallback:
+        display_ = new NoDisplay();
     }
 
     void InitializeButtons() {
@@ -181,6 +211,9 @@ public:
     }
 
     virtual Display* GetDisplay() override {
+        if (display_ == nullptr) {
+            display_ = new NoDisplay();
+        }
         return display_;
     }
 };
