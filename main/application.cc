@@ -536,7 +536,10 @@ void Application::InitializeProtocol() {
 
     display->SetStatus(Lang::Strings::LOADING_PROTOCOL);
 
-    if (ota_->HasMqttConfig() && ota_->HasWebsocketConfig()) {
+    std::string ota_url = ota_->GetCheckVersionUrl();
+    bool is_tenclass = (ota_url.find("api.tenclass.net") != std::string::npos);
+
+    if (ota_->HasMqttConfig() && ota_->HasWebsocketConfig() && !is_tenclass) {
         protocol_ = std::make_unique<DualProtocol>();
     } else if (ota_->HasMqttConfig()) {
         protocol_ = std::make_unique<MqttProtocol>();
